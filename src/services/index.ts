@@ -1,1 +1,1 @@
-export { trimVideo } from "./videos";
+export { mergeVideos, trimVideo } from "./videos";

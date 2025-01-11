@@ -4,7 +4,7 @@ import fs from "fs";
 import path from "path";
 
 import { validateVideoUpload } from "../middleware";
-import { trimVideo } from "../services";
+import { mergeVideos, trimVideo } from "../services";
 
 const router = express();
 const prisma = new PrismaClient();
@@ -76,7 +76,7 @@ router.post(
 
       const videoPath = video.path;
       if (!fs.existsSync(videoPath)) {
-        res.status(404).json({ message: "video file not found on server" });
+        res.status(404).json({ message: "video file not found in store" });
         return;
       }
 
@@ -84,10 +84,10 @@ router.post(
         try {
           fs.mkdirSync(VIDEO_STORAGE_FOLDER);
         } catch (err) {
-          console.error("Failed to create video storage folder", err);
+          console.error("failed to create video storage", err);
           res
             .status(500)
-            .json({ message: "server error while creating storage folder" });
+            .json({ message: "server error while creating storage" });
           return;
         }
       }
@@ -101,7 +101,7 @@ router.post(
       try {
         await trimVideo(videoPath, outputPath, start, end, video.duration);
       } catch (error) {
-        console.error("Error during trimming process:", error);
+        console.error("error during trimming process:", error);
         res.status(500).json({ message: "error trimming video" });
         return;
       }
@@ -125,5 +125,80 @@ router.post(
     }
   }
 );
+
+router.post("/merge", async (req, res) => {
+  try {
+    const { videoIds } = req.body;
+
+    if (!videoIds || !Array.isArray(videoIds) || videoIds.length < 2) {
+      res.status(400).json({
+        message: "at least two video IDs are required to merge videos",
+      });
+      return;
+    }
+
+    const videos = await prisma.videos.findMany({
+      where: {
+        id: { in: videoIds },
+      },
+    });
+
+    if (!videos || videos.length !== videoIds.length) {
+      res.status(404).json({
+        message: "one or more video IDs do not exist",
+      });
+      return;
+    }
+
+    const videoPaths = videos.map((v) => v.path);
+
+    if (videoPaths.some((path) => !fs.existsSync(path))) {
+      res.status(404).json({
+        message: "one or more video files are missing from the store",
+      });
+      return;
+    }
+
+    if (!fs.existsSync(VIDEO_STORAGE_FOLDER)) {
+      try {
+        fs.mkdirSync(VIDEO_STORAGE_FOLDER);
+      } catch (err) {
+        console.error("failed to create video storage", err);
+        res
+          .status(500)
+          .json({ message: "server error while creating storage" });
+        return;
+      }
+    }
+
+    const mergedFileName = `${Date.now()}-merged.mp4`;
+    const outputPath = path.join(VIDEO_STORAGE_FOLDER, mergedFileName);
+
+    try {
+      await mergeVideos(videoPaths, outputPath);
+    } catch (error) {
+      console.error("error during merging process:", error);
+      res.status(500).json({ message: "error merging videos" });
+      return;
+    }
+
+    const mergedVideo = await prisma.videos.create({
+      data: {
+        name: mergedFileName,
+        size: fs.statSync(outputPath).size,
+        duration: videos.reduce((sum, video) => sum + video.duration, 0),
+        path: outputPath,
+      },
+    });
+
+    res.status(201).json({
+      message: "video trimmed successfully",
+      video: mergedVideo,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "server error while merging video" });
+  }
+});
 
 export default router;
