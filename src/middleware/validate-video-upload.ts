@@ -1,19 +1,20 @@
-import multer from "multer";
-import fs from "fs";
-import ffmpeg from "fluent-ffmpeg";
 import { NextFunction } from "express";
+import ffmpeg from "fluent-ffmpeg";
+import fs from "fs";
+import multer from "multer";
 
 const MAX_SIZE = Number(process.env.MAX_VIDEO_SIZE_IN_MB || 25) * 1024 * 1024;
 const MIN_DURATION = Number(process.env.MIN_VIDEO_DURATION_IN_SECONDS || 5);
 const MAX_DURATION = Number(process.env.MAX_VIDEO_DURATION_IN_SECONDS || 25);
+const VIDEO_STORAGE_FOLDER =
+  (process.env.VIDEO_STORAGE_FOLDER || "video_store") + "/";
 
 const storage = multer.diskStorage({
   destination: (_, __, cb) => {
-    const uploadPath = "uploads/";
-    if (!fs.existsSync(uploadPath)) {
-      fs.mkdirSync(uploadPath);
+    if (!fs.existsSync(VIDEO_STORAGE_FOLDER)) {
+      fs.mkdirSync(VIDEO_STORAGE_FOLDER);
     }
-    cb(null, uploadPath);
+    cb(null, VIDEO_STORAGE_FOLDER);
   },
   filename: (_, file, cb) => {
     cb(null, `${Date.now()}-${file.originalname}`);
