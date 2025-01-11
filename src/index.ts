@@ -1,15 +1,16 @@
 require("dotenv").config();
+
 import express from "express";
+
 import { authenticate } from "./middleware";
+import routes from "./routes";
 
 const app = express();
 
 app.use(express.json());
 app.use(authenticate);
 
-app.get("/", (req, res) => {
-  res.send("Video api");
-});
+app.use("/api", routes);
 
 const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => {
