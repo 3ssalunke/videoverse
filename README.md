@@ -80,3 +80,23 @@ You can import the provided Postman JSON file into Postman to explore and test t
 ## Example Usage
 
 For detailed instructions on how to interact with the API, refer to the Postman collection that accompanies this project.
+
+## References
+
+### 1. **Prisma Documentation**
+
+- [Prisma Documentation](https://www.prisma.io/docs/)
+
+### 2. **FFmpeg Installation**
+
+- [FFmpeg Official Website](https://ffmpeg.org/)
+- [Install FFmpeg on Windows](https://www.wikihow.com/Install-FFmpeg-on-Windows)
+- [NPM fluent-ffmpeg](https://www.npmjs.com/package/fluent-ffmpeg)
+
+### 3. **Multer for File Uploads**
+
+- [Multer Documentation](https://www.npmjs.com/package/multer)
+
+### 4. **Testing with Jest**
+
+- [Jest Documentation](https://jestjs.io/docs/getting-started)
