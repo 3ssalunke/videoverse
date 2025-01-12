@@ -83,6 +83,7 @@ router.post(
       }
 
       if (!fs.existsSync(VIDEO_STORAGE_FOLDER)) {
+        console.log("debug2");
         try {
           fs.mkdirSync(VIDEO_STORAGE_FOLDER);
         } catch (err) {
