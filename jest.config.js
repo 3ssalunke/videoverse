@@ -2,6 +2,9 @@
 module.exports = {
   preset: "ts-jest",
   testEnvironment: "node",
-  testMatch: ["**/routes/__tests__/**/*.test.ts"],
+  testMatch: ["**/__tests__/**/*.test.ts"],
   setupFilesAfterEnv: ["./src/test/prisma-singleton.ts"],
+  collectCoverage: true,
+  collectCoverageFrom: ["src/**/*.ts", "!src/**/*.test.ts"],
+  coverageReporters: ["text"],
 };
