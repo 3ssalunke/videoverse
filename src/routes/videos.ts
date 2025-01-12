@@ -268,10 +268,11 @@ router.get("/access/:id", async (req, res) => {
       return;
     }
 
+    console.log(videoPath);
     res.sendFile(videoPath, { root: "." });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Error accessing shared video" });
+    res.status(500).json({ message: "server error accessing shared video" });
   }
 });
 

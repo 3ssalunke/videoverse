@@ -9,6 +9,23 @@ import videoRouter from "../../routes/videos";
 import { prismaMock } from "../../test/prisma-singleton";
 import { mergeVideos, trimVideo } from "../../services";
 
+type ShareLinkWithVideo =
+  | ({
+      video: {
+        id: string;
+        name: string;
+        size: number;
+        duration: number;
+        path: string;
+        created_at: Date;
+      };
+    } & {
+      id: string;
+      video_id: string;
+      expiry_date: Date;
+    })
+  | null;
+
 jest.mock("../../middleware", () => ({
   validateVideoUpload: jest.fn((req: any, _: any, next: any) => {
     req.body.video = {
@@ -417,5 +434,150 @@ describe("Videos Merge Route", () => {
         duration: 220,
       })
     );
+  });
+});
+
+describe("Video Share Route", () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("should return 400 if videoId is missing", async () => {
+    const response = await request(app).post("/videos/share").send({});
+    expect(response.status).toBe(400);
+    expect(response.body.message).toBe("video ID is required");
+  });
+
+  it("should return 404 if video does not exist", async () => {
+    prismaMock.videos.findUnique.mockResolvedValue(null);
+
+    const response = await request(app)
+      .post("/videos/share")
+      .send({ videoId: "1" });
+    expect(response.status).toBe(404);
+    expect(response.body.message).toBe("video not found");
+  });
+
+  it("should return 500 if an error occurs while creating the share link", async () => {
+    prismaMock.videos.findUnique.mockResolvedValue({
+      id: "1",
+      name: "test.mp4",
+      size: 1024,
+      duration: 120,
+      path: "video_store/test.mp4",
+      created_at: new Date(),
+    });
+
+    prismaMock.shared_links.create.mockRejectedValue(
+      new Error("Database error")
+    );
+
+    const response = await request(app)
+      .post("/videos/share")
+      .send({ videoId: "1" });
+    expect(response.status).toBe(500);
+    expect(response.body.message).toBe("error generating share link");
+  });
+
+  it("should generate a share link successfully", async () => {
+    const expiryDuration =
+      Number(process.env.SHARED_LINKED_EXPIRY_IN_HOURS) * 60 * 60 * 1000;
+    const mockExpiryDate = new Date(Date.now() + expiryDuration);
+
+    prismaMock.videos.findUnique.mockResolvedValue({
+      id: "1",
+      name: "test.mp4",
+      size: 1024,
+      duration: 120,
+      path: "video_store/test.mp4",
+      created_at: new Date(),
+    });
+
+    prismaMock.shared_links.create.mockResolvedValue({
+      id: "123",
+      video_id: "1",
+      expiry_date: mockExpiryDate,
+    });
+
+    const response = await request(app)
+      .post("/videos/share")
+      .send({ videoId: "1" });
+
+    expect(response.status).toBe(201);
+    expect(response.body.message).toBe("share link generated successfully");
+    expect(response.body.shareUrl).toBe(
+      `${process.env.SHARE_LINK_BASE_URL}/123`
+    );
+  });
+});
+
+describe("Access Shared Link", () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("should return 404 if share link does not exist", async () => {
+    prismaMock.shared_links.findUnique.mockResolvedValue(null);
+
+    const response = await request(app).get("/videos/access/nonexistent-id");
+    expect(response.status).toBe(404);
+    expect(response.body.message).toBe("share link not found");
+  });
+
+  it("should return 410 if share link is expired", async () => {
+    prismaMock.shared_links.findUnique.mockResolvedValue({
+      id: "123",
+      video_id: "1",
+      expiry_date: new Date(Date.now() - 3600 * 1000),
+    });
+
+    const response = await request(app).get("/videos/access/123");
+    expect(response.status).toBe(410);
+    expect(response.body.message).toBe("share link has expired");
+  });
+
+  it("should return 404 if video file does not exist", async () => {
+    prismaMock.shared_links.findUnique.mockResolvedValue({
+      id: "123",
+      video_id: "1",
+      expiry_date: new Date(Date.now() + 3600 * 1000),
+      video: {
+        path: "video_store/test.mp4",
+      },
+    } as ShareLinkWithVideo);
+
+    jest.spyOn(fs, "existsSync").mockReturnValue(false);
+
+    const response = await request(app).get("/videos/access/123");
+    expect(response.status).toBe(404);
+    expect(response.body.message).toBe("video file not found");
+  });
+
+  // it("should return the video file successfully", async () => {
+  //   prismaMock.shared_links.findUnique.mockResolvedValue({
+  //     id: "123",
+  //     video_id: "1",
+  //     expiry_date: new Date(Date.now() + 3600 * 1000),
+  //     video: {
+  //       path: "video_store/test.mp4",
+  //     },
+  //   } as ShareLinkWithVideo);
+
+  //   jest.spyOn(fs, "existsSync").mockReturnValue(true);
+
+  //   const response = await request(app).get("/videos/access/123");
+
+  //   expect(response.status).toBe(200);
+  //   expect(response.headers["content-type"]).toMatch(/video/);
+  // });
+
+  it("should return 500 if an unexpected error occurs", async () => {
+    prismaMock.shared_links.findUnique.mockRejectedValue(
+      new Error("Database error")
+    );
+
+    const response = await request(app).get("/videos/access/123");
+    expect(response.status).toBe(500);
+    expect(response.body.message).toBe("server error accessing shared video");
   });
 });
