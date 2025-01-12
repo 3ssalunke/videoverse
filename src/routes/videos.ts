@@ -11,6 +11,9 @@ const prisma = new PrismaClient();
 
 const VIDEO_STORAGE_FOLDER =
   (process.env.VIDEO_STORAGE_FOLDER || "video_store") + "/";
+const SHARED_LINKED_EXPIRY_IN_HOURS =
+  Number(process.env.SHARED_LINKED_EXPIRY_IN_HOURS) || 1;
+const SHARE_LINK_BASE_URL = process.env.SHARE_LINK_BASE_URL;
 
 router.post("/", validateVideoUpload, async (req, res) => {
   try {
@@ -46,7 +49,7 @@ router.post(
 
       if (!videoId || (start === undefined && end === undefined)) {
         res.status(400).json({
-          message: "video id and one of the start or end time required",
+          message: "video ID and one of the start or end time required",
         });
         return;
       }
@@ -198,6 +201,77 @@ router.post("/merge", async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "server error while merging video" });
+  }
+});
+
+router.post("/share", async (req, res) => {
+  try {
+    const { videoId } = req.body;
+
+    if (!videoId) {
+      res.status(400).json({ message: "video ID is required" });
+      return;
+    }
+
+    const video = await prisma.videos.findUnique({
+      where: { id: videoId },
+    });
+
+    if (!video) {
+      res.status(404).json({ message: "video not found" });
+      return;
+    }
+
+    const expiryDuration = SHARED_LINKED_EXPIRY_IN_HOURS * 60 * 60 * 1000;
+    const expiryDate = new Date(Date.now() + expiryDuration);
+
+    const shareLink = await prisma.shared_links.create({
+      data: {
+        video_id: videoId,
+        expiry_date: expiryDate,
+      },
+    });
+
+    const shareUrl = `${SHARE_LINK_BASE_URL}/${shareLink.id}`;
+    res.status(201).json({
+      message: "share link generated successfully",
+      shareUrl,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "error generating share link" });
+  }
+});
+
+router.get("/access/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const shareLink = await prisma.shared_links.findUnique({
+      where: { id },
+      include: { video: true },
+    });
+
+    if (!shareLink) {
+      res.status(404).json({ message: "share link not found" });
+      return;
+    }
+
+    if (new Date() > new Date(shareLink.expiry_date)) {
+      res.status(410).json({ message: "share link has expired" });
+      return;
+    }
+
+    const videoPath = shareLink.video.path;
+    if (!fs.existsSync(videoPath)) {
+      res.status(404).json({ message: "video file not found" });
+      return;
+    }
+
+    res.sendFile(videoPath, { root: "." });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error accessing shared video" });
   }
 });
 
