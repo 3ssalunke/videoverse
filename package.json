@@ -4,8 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "jest",
-    "test:coverage": "jest --coverage",
+    "test:unit": "jest --config jest.config.unit.js",
+    "test:e2e": "jest --config jest.config.e2e.js",
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:coverage": "jest --config jest.config.unit.js --coverage",
     "start:dev": "nodemon src/index.ts",
     "build": "tsc",
     "start": "node build/index.js"
