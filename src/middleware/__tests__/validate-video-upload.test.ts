@@ -35,8 +35,8 @@ describe("validateVideoUpload middleware", () => {
       const multer: any = jest.fn(() => ({
         single: jest.fn(() => (req: any, res: any, callback: Function) => {
           req.file = {
-            path: "./test.mp4",
-            originalname: "test.mp4",
+            path: "./video.mp4",
+            originalname: "video.mp4",
           };
           callback(null);
         }),
@@ -55,7 +55,7 @@ describe("validateVideoUpload middleware", () => {
 
     expect(next).toHaveBeenCalled();
     expect(req.body).toHaveProperty("video");
-    expect(req.body.video.originalname).toBe("test.mp4");
+    expect(req.body.video.originalname).toBe("video.mp4");
     expect(req.body).toHaveProperty("duration", 15);
   });
 
@@ -107,8 +107,8 @@ describe("validateVideoUpload middleware", () => {
       const multer: any = jest.fn(() => ({
         single: jest.fn(() => (req: any, res: any, callback: Function) => {
           req.file = {
-            path: "./test.mp4",
-            originalname: "test.mp4",
+            path: "./video.mp4",
+            originalname: "video.mp4",
           };
           callback(null);
         }),

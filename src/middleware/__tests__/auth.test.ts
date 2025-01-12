@@ -1,6 +1,8 @@
 import dotenv from "dotenv";
 dotenv.config();
+
 import { Request, Response } from "express";
+
 import { authenticate } from "../auth";
 
 describe("authenticate Middleware", () => {

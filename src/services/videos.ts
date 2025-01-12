@@ -65,7 +65,8 @@ export const mergeVideos = async (
   } catch (error) {
     if (fs.existsSync(tmpFilePath)) {
       fs.unlinkSync(tmpFilePath);
-      return Promise.reject(error);
     }
+
+    throw error;
   }
 };
