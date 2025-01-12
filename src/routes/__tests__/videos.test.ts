@@ -7,7 +7,7 @@ import request from "supertest";
 
 import videoRouter from "../../routes/videos";
 import { prismaMock } from "../../test/prisma-singleton";
-import { trimVideo } from "../../services";
+import { mergeVideos, trimVideo } from "../../services";
 
 jest.mock("../../middleware", () => ({
   validateVideoUpload: jest.fn((req: any, _: any, next: any) => {
@@ -19,6 +19,11 @@ jest.mock("../../middleware", () => ({
     req.body.duration = 120;
     next();
   }),
+}));
+jest.mock("path");
+jest.mock("../../services", () => ({
+  trimVideo: jest.fn(),
+  mergeVideos: jest.fn(),
 }));
 
 const app = express();
@@ -76,11 +81,6 @@ describe("Video Upload Route", () => {
     expect(prismaMock.videos.create).toHaveBeenCalled();
   });
 });
-
-jest.mock("path");
-jest.mock("../../services", () => ({
-  trimVideo: jest.fn(),
-}));
 
 describe("Video Trim Route", () => {
   afterEach(() => {
@@ -238,6 +238,183 @@ describe("Video Trim Route", () => {
         size: 512,
         duration: 60,
         path: "video_store/trimmed-test.mp4",
+      })
+    );
+  });
+});
+
+describe("Videos Merge Route", () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("should return 400 if videoIds is missing", async () => {
+    const response = await request(app).post("/videos/merge").send({});
+    expect(response.status).toBe(400);
+    expect(response.body.message).toBe(
+      "at least two video IDs are required to merge videos"
+    );
+  });
+
+  it("should return 400 if videoIds is not an array", async () => {
+    const response = await request(app)
+      .post("/videos/merge")
+      .send({ videoIds: "invalid" });
+    expect(response.status).toBe(400);
+    expect(response.body.message).toBe(
+      "at least two video IDs are required to merge videos"
+    );
+  });
+
+  it("should return 404 if one or more video IDs do not exist", async () => {
+    prismaMock.videos.findMany.mockResolvedValue([]);
+    const response = await request(app)
+      .post("/videos/merge")
+      .send({ videoIds: ["1", "2"] });
+    expect(response.status).toBe(404);
+    expect(response.body.message).toBe("one or more video IDs do not exist");
+  });
+
+  it("should return 404 if one or more video files are missing", async () => {
+    prismaMock.videos.findMany.mockResolvedValue([
+      {
+        id: "1",
+        path: "video_store/1.mp4",
+        name: "1.mp4",
+        duration: 100,
+        created_at: new Date(),
+        size: 10,
+      },
+      {
+        id: "2",
+        path: "video_store/2.mp4",
+        name: "2.mp4",
+        duration: 120,
+        created_at: new Date(),
+        size: 10,
+      },
+    ]);
+
+    jest
+      .spyOn(fs, "existsSync")
+      .mockImplementation((path) => path !== "video_store/2.mp4");
+
+    const response = await request(app)
+      .post("/videos/merge")
+      .send({ videoIds: ["1", "2"] });
+    expect(response.status).toBe(404);
+    expect(response.body.message).toBe(
+      "one or more video files are missing from the store"
+    );
+  });
+
+  it("should return 500 if storage folder creation fails", async () => {
+    prismaMock.videos.findMany.mockResolvedValue([
+      {
+        id: "1",
+        path: "video_store/1.mp4",
+        name: "1.mp4",
+        duration: 100,
+        created_at: new Date(),
+        size: 10,
+      },
+      {
+        id: "2",
+        path: "video_store/2.mp4",
+        name: "2.mp4",
+        duration: 120,
+        created_at: new Date(),
+        size: 10,
+      },
+    ]);
+    jest.spyOn(fs, "existsSync").mockImplementation((path) => {
+      if (path === "video_store/") return false;
+      return true;
+    });
+    jest.spyOn(fs, "mkdirSync").mockImplementation(() => {
+      throw new Error("Failed to create directory");
+    });
+
+    const response = await request(app)
+      .post("/videos/merge")
+      .send({ videoIds: ["1", "2"] });
+    expect(response.status).toBe(500);
+    expect(response.body.message).toBe("server error while creating storage");
+  });
+
+  it("should return 500 if merging process fails", async () => {
+    prismaMock.videos.findMany.mockResolvedValue([
+      {
+        id: "1",
+        path: "video_store/1.mp4",
+        name: "1.mp4",
+        duration: 100,
+        created_at: new Date(),
+        size: 10,
+      },
+      {
+        id: "2",
+        path: "video_store/2.mp4",
+        name: "2.mp4",
+        duration: 120,
+        created_at: new Date(),
+        size: 10,
+      },
+    ]);
+    jest.spyOn(fs, "existsSync").mockReturnValue(true);
+    (mergeVideos as jest.Mock).mockRejectedValue(new Error("Merging error"));
+
+    const response = await request(app)
+      .post("/videos/merge")
+      .send({ videoIds: ["1", "2"] });
+    expect(response.status).toBe(500);
+    expect(response.body.message).toBe("error merging videos");
+  });
+
+  it("should merge videos successfully", async () => {
+    prismaMock.videos.findMany.mockResolvedValue([
+      {
+        id: "1",
+        path: "video_store/1.mp4",
+        name: "1.mp4",
+        duration: 100,
+        created_at: new Date(),
+        size: 10,
+      },
+      {
+        id: "2",
+        path: "video_store/2.mp4",
+        name: "2.mp4",
+        duration: 120,
+        created_at: new Date(),
+        size: 10,
+      },
+    ]);
+    jest.spyOn(fs, "existsSync").mockReturnValue(true);
+    (mergeVideos as jest.Mock).mockResolvedValue(null);
+    jest.spyOn(fs, "statSync").mockReturnValue({
+      size: BigInt(512),
+    } as unknown as fs.Stats);
+    prismaMock.videos.create.mockResolvedValue({
+      id: "3",
+      name: "merged.mp4",
+      size: 512,
+      duration: 220,
+      path: "video_store/merged.mp4",
+      created_at: new Date(),
+    });
+
+    const response = await request(app)
+      .post("/videos/merge")
+      .send({ videoIds: ["1", "2"] });
+
+    expect(response.status).toBe(201);
+    expect(response.body.message).toBe("video trimmed successfully");
+    expect(response.body.video).toEqual(
+      expect.objectContaining({
+        name: "merged.mp4",
+        size: 512,
+        duration: 220,
       })
     );
   });
