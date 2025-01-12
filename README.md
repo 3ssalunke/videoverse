@@ -77,10 +77,6 @@ npm run test
 
 You can import the provided Postman JSON file into Postman to explore and test the API endpoints.
 
-## Example Usage
-
-For detailed instructions on how to interact with the API, refer to the Postman collection that accompanies this project.
-
 ## References
 
 ### 1. **Prisma Documentation**
