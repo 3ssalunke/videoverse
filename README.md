@@ -49,7 +49,7 @@ Windows: Download the FFmpeg binary from [FFmpeg official website](https://ffmpe
 
 Make sure that the .env file has all the environment variables with correct values.
 
-### 5. Setup local database
+### 5. Setup local database(Optional)
 
 Run the following command to generate Prisma migration files and set up the database:
 
@@ -71,6 +71,12 @@ To run tests for this project, make sure you have the necessary environment set 
 
 ```bash
 npm run test
+```
+
+To get unit test coverage, run the following command:
+
+```bash
+npm run test:coverage
 ```
 
 ## Postman Documentation
