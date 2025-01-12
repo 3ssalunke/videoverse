@@ -1,13 +1,12 @@
-import { PrismaClient } from "@prisma/client";
 import express, { Request, Response } from "express";
 import fs from "fs";
 import path from "path";
 
+import prisma from "../prisma-client";
 import { validateVideoUpload } from "../middleware";
 import { mergeVideos, trimVideo } from "../services";
 
 const router = express();
-const prisma = new PrismaClient();
 
 const VIDEO_STORAGE_FOLDER =
   (process.env.VIDEO_STORAGE_FOLDER || "video_store") + "/";
