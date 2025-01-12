@@ -1,0 +1,122 @@
+{
+  "info": {
+    "_postman_id": "f0c41246-03b4-41c4-af2e-7373d4b39099",
+    "name": "videoverse",
+    "schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+    "_exporter_id": "40954285"
+  },
+  "item": [
+    {
+      "name": "Upload videos",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": {
+            "token": "kVvKz9TEvWAgQs3MtSJqTXSjtLfMMcyD"
+          }
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "video",
+              "type": "file",
+              "src": []
+            }
+          ]
+        },
+        "url": "localhost:8000/api/v1/videos"
+      },
+      "response": []
+    },
+    {
+      "name": "Trim video",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": {
+            "token": "kVvKz9TEvWAgQs3MtSJqTXSjtLfMMcyD"
+          }
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"videoId\": \"\",\r\n    \"start\": 0,\r\n    \"end\": 0\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "localhost:8000/api/v1/videos/trim"
+      },
+      "response": []
+    },
+    {
+      "name": "Merge videos",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": {
+            "token": "kVvKz9TEvWAgQs3MtSJqTXSjtLfMMcyD"
+          }
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"videoIds\": []\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "localhost:8000/api/v1/videos/merge"
+      },
+      "response": []
+    },
+    {
+      "name": "Share video via link",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": {
+            "token": "kVvKz9TEvWAgQs3MtSJqTXSjtLfMMcyD"
+          }
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"videoId\": \"\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "localhost:8000/api/v1/videos/share"
+      },
+      "response": []
+    },
+    {
+      "name": "Access shared link",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": {
+            "token": "kVvKz9TEvWAgQs3MtSJqTXSjtLfMMcyD"
+          }
+        },
+        "method": "GET",
+        "header": [],
+        "url": "http://localhost:8000/api/v1/videos/access/{id}"
+      },
+      "response": []
+    }
+  ]
+}
