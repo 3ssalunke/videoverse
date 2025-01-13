@@ -2,6 +2,7 @@ import ffmpeg from "fluent-ffmpeg";
 import fs from "fs";
 
 import { trimVideo, mergeVideos } from "../videos";
+import path from "path";
 
 jest.mock("fluent-ffmpeg", () => {
   const mockCommand = {
@@ -64,8 +65,7 @@ describe("Video Services", () => {
   describe("mergeVideos", () => {
     it("should resolve when the merging is successful", async () => {
       const mockCommand = (ffmpeg as unknown as jest.Mock)();
-      const tmpFilePath =
-        "C:\\Suraj\\Educational\\videoverse\\src\\services\\tmp_video_list.txt";
+      const tmpFilePath = path.resolve(__dirname, "..", "tmp_video_list.txt");
 
       jest.spyOn(fs, "writeFileSync").mockImplementation();
       jest.spyOn(fs, "unlinkSync").mockImplementation();
@@ -80,7 +80,13 @@ describe("Video Services", () => {
 
       expect(fs.writeFileSync).toHaveBeenCalledWith(
         tmpFilePath,
-        "file 'C:/Suraj/Educational/videoverse/video1.mp4'\nfile 'C:/Suraj/Educational/videoverse/video2.mp4'"
+        `file '${path.resolve(
+          __dirname,
+          "..",
+          "..",
+          "..",
+          "video1.mp4"
+        )}'\nfile '${path.resolve(__dirname, "..", "..", "..", "video2.mp4")}'`
       );
       expect(ffmpeg).toHaveBeenCalled();
       expect(mockCommand.input).toHaveBeenCalledWith(tmpFilePath);
@@ -90,8 +96,7 @@ describe("Video Services", () => {
 
     it("should reject if there is an error during merging", async () => {
       const mockCommand = (ffmpeg as unknown as jest.Mock)();
-      const tmpFilePath =
-        "C:\\Suraj\\Educational\\videoverse\\src\\services\\tmp_video_list.txt";
+      const tmpFilePath = path.resolve(__dirname, "..", "tmp_video_list.txt");
 
       jest.spyOn(fs, "writeFileSync").mockImplementation();
       jest.spyOn(fs, "unlinkSync").mockImplementation();

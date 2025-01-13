@@ -195,7 +195,7 @@ router.post("/merge", async (req, res) => {
     });
 
     res.status(201).json({
-      message: "video trimmed successfully",
+      message: "videos merged successfully",
       video: mergedVideo,
     });
   } catch (error) {

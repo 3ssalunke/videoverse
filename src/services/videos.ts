@@ -1,6 +1,6 @@
 import ffmpeg from "fluent-ffmpeg";
-import path from "path";
 import fs from "fs";
+import path from "path";
 
 export const trimVideo = (
   inputPath: string,
@@ -40,9 +40,7 @@ export const mergeVideos = async (
 
   try {
     const absolutePaths = videoPaths.map((p) => path.resolve(p));
-    const tmpFileContent = absolutePaths
-      .map((p) => `file '${p.replace(/\\/g, "/")}'`)
-      .join("\n");
+    const tmpFileContent = absolutePaths.map((p) => `file '${p}'`).join("\n");
 
     fs.writeFileSync(tmpFilePath, tmpFileContent);
 
